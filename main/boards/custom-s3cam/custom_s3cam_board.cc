@@ -92,9 +92,9 @@ private:
         config.pin_reset = CAMERA_PIN_RESET;
         config.xclk_freq_hz = XCLK_FREQ_HZ;
         config.pixel_format = PIXFORMAT_JPEG;
-        config.frame_size = FRAMESIZE_QVGA;
-        config.jpeg_quality = 8;
-        config.fb_count = 1;
+        config.frame_size = FRAMESIZE_VGA;
+        config.jpeg_quality = 6;
+        config.fb_count = 2;
         config.fb_location = CAMERA_FB_IN_PSRAM;
         config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
         camera_ = new Esp32Camera(config);
