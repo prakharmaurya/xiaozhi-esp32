@@ -1,5 +1,6 @@
 #include "single_led.h"
 #include "application.h"
+#include "mcp_server.h"
 #include <esp_log.h> 
 
 #define TAG "SingleLed"
@@ -40,6 +41,63 @@ SingleLed::SingleLed(gpio_num_t gpio) {
         .skip_unhandled_events = false,
     };
     ESP_ERROR_CHECK(esp_timer_create(&blink_timer_args, &blink_timer_));
+
+    auto& mcp_server = McpServer::GetInstance();
+
+    mcp_server.AddTool("self.neopixel.set_color", 
+        "Set the NeoPixel LED color. (设置 LED 颜色)", 
+        PropertyList({
+            Property("red", kPropertyTypeInteger, 0, 255),
+            Property("green", kPropertyTypeInteger, 0, 255),
+            Property("blue", kPropertyTypeInteger, 0, 255),
+        }), [this](const PropertyList& properties) -> ReturnValue {
+            uint8_t red = properties["red"].value<int>();
+            uint8_t green = properties["green"].value<int>();
+            uint8_t blue = properties["blue"].value<int>();
+            ESP_LOGI(TAG, "Setting LED color to RGB(%d, %d, %d)", red, green, blue);
+            SetManualMode(true);
+            SetColor(red, green, blue);
+            TurnOn();
+            return true;
+        });
+        
+    mcp_server.AddTool("self.neopixel.turn_off", 
+        "Turn off the NeoPixel LED. (关闭 LED)", 
+        PropertyList(), [this](const PropertyList& properties) -> ReturnValue {
+            ESP_LOGI(TAG, "Turning off LED");
+            SetManualMode(true);
+            TurnOff();
+            return true;
+        });
+
+    mcp_server.AddTool("self.neopixel.blink", 
+        "Blink the NeoPixel LED. (闪烁 LED)", 
+        PropertyList({
+            Property("red", kPropertyTypeInteger, 0, 255),
+            Property("green", kPropertyTypeInteger, 0, 255),
+            Property("blue", kPropertyTypeInteger, 0, 255),
+            Property("count", kPropertyTypeInteger, 1, 100),
+            Property("interval", kPropertyTypeInteger, 10, 5000),
+        }), [this](const PropertyList& properties) -> ReturnValue {
+            uint8_t red = properties["red"].value<int>();
+            uint8_t green = properties["green"].value<int>();
+            uint8_t blue = properties["blue"].value<int>();
+            int count = properties["count"].value<int>();
+            int interval = properties["interval"].value<int>();
+            ESP_LOGI(TAG, "Blinking LED RGB(%d, %d, %d) %d times every %d ms", red, green, blue, count, interval);
+            SetManualMode(true);
+            Blink(count, interval);
+            SetColor(red, green, blue);
+            return true;
+        });
+
+    mcp_server.AddTool("self.neopixel.reset_mode", 
+        "Reset the NeoPixel LED to automatic status mode. (恢复默认状态指示)", 
+        PropertyList(), [this](const PropertyList& properties) -> ReturnValue {
+            ESP_LOGI(TAG, "Resetting LED to automatic mode");
+            SetManualMode(false);
+            return true;
+        });
 }
 
 SingleLed::~SingleLed() {
@@ -56,6 +114,13 @@ void SingleLed::SetColor(uint8_t r, uint8_t g, uint8_t b) {
     r_ = r;
     g_ = g;
     b_ = b;
+}
+
+void SingleLed::SetManualMode(bool manual) {
+    manual_mode_ = manual;
+    if (!manual) {
+        OnStateChanged();
+    }
 }
 
 void SingleLed::TurnOn() {
@@ -121,6 +186,10 @@ void SingleLed::OnBlinkTimer() {
 
 
 void SingleLed::OnStateChanged() {
+    if (manual_mode_) {
+        return;
+    }
+
     auto& app = Application::GetInstance();
     auto device_state = app.GetDeviceState();
     switch (device_state) {

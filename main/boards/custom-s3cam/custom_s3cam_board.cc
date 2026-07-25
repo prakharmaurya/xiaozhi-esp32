@@ -25,6 +25,7 @@ private:
     Button boot_button_;
     LcdDisplay* display_;
     Esp32Camera* camera_;
+    LampController* lamp_controller_ = nullptr;
 
     void InitializeSpi() {
         spi_bus_config_t buscfg = {};
@@ -121,6 +122,7 @@ public:
         if (DISPLAY_BACKLIGHT_PIN != GPIO_NUM_NC) {
             GetBacklight()->RestoreBrightness();
         }
+        lamp_controller_ = new LampController(LAMP_GPIO);
     }
 
     virtual Led* GetLed() override {

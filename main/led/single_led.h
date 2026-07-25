@@ -17,8 +17,17 @@ public:
 
     void OnStateChanged() override;
 
+    void BlinkOnce();
+    void Blink(int times, int interval_ms);
+    void StartContinuousBlink(int interval_ms);
+    void TurnOn();
+    void TurnOff();
+    void SetColor(uint8_t r, uint8_t g, uint8_t b);
+    void SetManualMode(bool manual);
+
 private:
     std::mutex mutex_;
+    bool manual_mode_ = false;
     TaskHandle_t blink_task_ = nullptr;
     led_strip_handle_t led_strip_ = nullptr;
     uint8_t r_ = 0, g_ = 0, b_ = 0;
@@ -28,13 +37,6 @@ private:
 
     void StartBlinkTask(int times, int interval_ms);
     void OnBlinkTimer();
-
-    void BlinkOnce();
-    void Blink(int times, int interval_ms);
-    void StartContinuousBlink(int interval_ms);
-    void TurnOn();
-    void TurnOff();
-    void SetColor(uint8_t r, uint8_t g, uint8_t b);
 };
 
 #endif // _SINGLE_LED_H_
